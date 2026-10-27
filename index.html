@@ -200,7 +200,8 @@ footer.foot{font-size:13px;color:var(--muted);text-align:center;display:flex;fle
 <script>
 "use strict";
 const CFG=Object.assign({SUPABASE_URL:"",SUPABASE_ANON_KEY:"",WHATSAPP_SOPORTE:"",ZONA:"Centro Histórico · Puebla"},window.PICKIT_CONFIG||{});
-const DEMO=!CFG.SUPABASE_URL;
+const CFG_OK=!!window.PICKIT_CONFIG;
+const DEMO=CFG_OK&&!CFG.SUPABASE_URL;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=n=>{const v=Math.round(Number(n||0)*100)/100;return "$"+v.toLocaleString("es-MX",{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2})};
@@ -681,6 +682,7 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferred=e;
 $("#installBtn").onclick=async()=>{if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;$("#installBtn").hidden=true};
 
 (async()=>{
+  if(!CFG_OK){$("#app").innerHTML=`<div class="panel bad"><b>La app no está configurada.</b><span>Revisa el archivo config.js.</span></div>`;return}
   if(!DEMO){try{await loadSupabase();sb=window.supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY)}catch(e){$("#app").innerHTML=`<div class="panel bad"><b>Sin conexión.</b><span>${esc(e.message)}</span></div>`;return}
     try{if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}}
   let ret=null;try{ret=new URLSearchParams(location.search).get("pago")}catch(e){}
