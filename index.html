@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pick It">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data:; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https://*.supabase.co; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin">
 <title>Pick It</title>
 <meta name="theme-color" content="#2340A8">
@@ -82,6 +82,15 @@ h3{font-family:var(--display);font-weight:800;font-size:18px;margin:0}
 .card.soldout{opacity:.6}
 .thumb{width:60px;height:60px;border-radius:12px;display:grid;place-items:center;background:var(--cobalt-soft);color:var(--cobalt)}
 .thumb svg{width:28px;height:28px}
+.thumb{overflow:hidden;flex:none}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.banner{display:block;width:100%;max-width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:14px;background:var(--cobalt-soft)}
+.picker{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.picker .thumb{width:72px;height:72px}
+.picker .acts{display:flex;gap:8px;flex-wrap:wrap}
+.picker input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.bizhead{display:flex;align-items:center;gap:12px;min-width:0}
+.bizhead .thumb{width:52px;height:52px}
 .body{min-width:0;display:flex;flex-direction:column;gap:4px}
 .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .row>*{min-width:0}
@@ -232,6 +241,36 @@ const ICONS={
  "Otro":'<path fill="currentColor" d="M6 7h12l-1.2 13.1a1 1 0 0 1-1 .9H8.2a1 1 0 0 1-1-.9zm3 0V6a3 3 0 0 1 6 0v1h-2V6a1 1 0 0 0-2 0v1z"/>'
 };
 const icon=c=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+(ICONS[c]||ICONS.Otro)+'</svg>';
+const safeImg=u=>typeof u==="string"&&(/^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/media\//.test(u)||/^data:image\/(jpeg|png|webp);base64,/.test(u));
+const pic=(u,cat,alt="")=>safeImg(u)?`<img src="${esc(u)}" alt="${esc(alt)}" loading="lazy">`:icon(cat);
+async function shrink(file,max){
+  if(!file)return null;
+  if(!/^image\/(jpeg|png|webp|heic|heif)$/i.test(file.type))throw new Error("Elige una imagen JPG, PNG o WebP.");
+  let bmp;try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"})}catch(e){throw new Error("No se pudo leer esa imagen. Prueba con otra o con una captura de pantalla.")}
+  const k=Math.min(1,max/Math.max(bmp.width,bmp.height)),w=Math.round(bmp.width*k),h=Math.round(bmp.height*k);
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;const cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,w,h);cx.drawImage(bmp,0,0,w,h);
+  let q=0.85,blob;do{blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",q));q-=0.12}while(blob&&blob.size>900000&&q>0.3);
+  if(!blob)throw new Error("No se pudo preparar la imagen.");return blob;
+}
+const blobToData=b=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(b)});
+function picker(id,label,current,cat,hint){
+  return `<div class="stack" style="gap:6px"><span class="meta" style="font-weight:600">${label}</span><div class="picker" id="${id}Box">
+    <div class="thumb" id="${id}Prev">${pic(current,cat)}</div>
+    <div class="acts"><label class="btn ghost small" for="${id}File" style="cursor:pointer">${safeImg(current)?"Cambiar":"Subir imagen"}</label>
+    <input type="file" id="${id}File" accept="image/jpeg,image/png,image/webp,image/heic">
+    <button type="button" class="btn ghost small" id="${id}Del" ${safeImg(current)?"":"hidden"}>Quitar</button></div></div>
+    <span class="hint">${hint}</span></div>`}
+function bindPicker(id,max,cat,state){
+  $("#"+id+"File").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+    try{state.blob=await shrink(f,max);state.remove=false;$("#"+id+"Prev").innerHTML=`<img src="${URL.createObjectURL(state.blob)}" alt="">`;$("#"+id+"Del").hidden=false}
+    catch(err){toast(err.message);e.target.value=""}};
+  $("#"+id+"Del").onclick=()=>{state.blob=null;state.remove=true;$("#"+id+"Prev").innerHTML=icon(cat);$("#"+id+"Del").hidden=true;$("#"+id+"File").value=""};
+}
+async function finalUrl(bid,kind,state,current){
+  if(state.blob)return await api.uploadImage(bid,kind,state.blob);
+  if(state.remove)return null;
+  return safeImg(current)?current:null;
+}
 const stars=r=>r?'<span class="stars">★</span> '+Number(r).toFixed(1):'';
 const STATUS={pendiente_pago:["Falta pagar","warn"],apartado:["Pagado · por recoger","blue"],recogido:["Recogido",""],cancelado:["Cancelado","grey"],
   no_recogido:["No lo recogió","bad"],por_reembolsar:["Por reembolsar","warn"],reembolsado:["Reembolsado","grey"]};
@@ -275,17 +314,17 @@ function demoSeed(){
     Object.entries(groups).forEach(([w,os])=>{const id="p"+b.id+w;P.push({id,business_id:b.id,orders_count:os.length,gross:sum(os,"total"),commission:sum(os,"commission"),net:sum(os,"net"),reference:"SPEI "+w.replace(/-/g,"").slice(2),paid_at:addDays(w,7)+"T11:00:00-06:00"});os.forEach(o=>o.payout_id=id)})}
   R.push({id:"r_today1",code:"PK-7KQ2M",offer_id:"o2",business_id:"b2",offer_title:"Menú del día para dos",customer_name:"Valeria",customer_phone:"2221112233",qty:1,total:59,kg:1,status:"apartado",rating:null,pickup:"17:30–18:30",created_at:t+"T13:10:00-06:00",paid_at:t+"T13:11:00-06:00",commission:14.75,net:44.25,payout_id:null});
   R.push({id:"r_ref",code:"PK-R3FND",offer_id:"o4",business_id:"b4",offer_title:"Dos cemitas del día",customer_name:"Carlos",customer_phone:"2221119999",qty:1,total:75,kg:0.9,status:"por_reembolsar",rating:null,pickup:"18:00–19:00",created_at:t+"T12:00:00-06:00",paid_at:t+"T12:25:00-06:00",commission:null,net:null,payout_id:null});
-  return {v:6,day:t,settings:{commission_pct:pct,hold_minutes:15},businesses:B,offers:O,orders:R,payouts:P};
+  return {v:7,day:t,settings:{commission_pct:pct,hold_minutes:15},businesses:B,offers:O,orders:R,payouts:P};
 }
 let DB=null;
-function demoDB(){if(!DB){DB=ls("pickit.demo",null);if(!DB||DB.v!==6||DB.day!==today())DB=demoSeed()}return DB}
+function demoDB(){if(!DB){DB=ls("pickit.demo",null);if(!DB||DB.v!==7||DB.day!==today())DB=demoSeed()}return DB}
 const demoSave=()=>lsSet("pickit.demo",DB);
 const bizOf=id=>demoDB().businesses.find(b=>b.id===id);
 function ratingOf(bid){const r=demoDB().orders.filter(o=>o.business_id===bid&&o.rating);return r.length?r.reduce((s,o)=>s+o.rating,0)/r.length:null}
 const eligible=(o,cut)=>PAID.includes(o.status)&&!o.payout_id&&dayOf(o.paid_at)<cut;
 const demoApi={
   async listOffers(){const d=demoDB(),t=today();
-    return d.offers.filter(o=>o.day===t&&bizOf(o.business_id).status==="activo").map(o=>{const b=bizOf(o.business_id);return {...o,business_name:b.name,category:b.category,address:b.address,city:b.city,rating:ratingOf(b.id)}})},
+    return d.offers.filter(o=>o.day===t&&bizOf(o.business_id).status==="activo").map(o=>{const b=bizOf(o.business_id);return {...o,business_name:b.name,category:b.category,address:b.address,city:b.city,logo_url:b.logo_url,rating:ratingOf(b.id)}})},
   async reserve(offerId,name,phone,qty){const d=demoDB(),o=d.offers.find(x=>x.id===offerId);
     if(!o||o.qty_left<qty)throw new Error("Ya no quedan suficientes bolsas.");
     o.qty_left-=qty;const code=genCode();
@@ -301,6 +340,7 @@ const demoApi={
   async signIn(){},async signUp(){},async signOut(){toast("En el modo demo no hay cierre de sesión")},
   async myBusiness(){return bizOf("b2")},
   async saveBusiness(p){Object.assign(bizOf("b2"),p);demoSave()},
+  async uploadImage(bid,kind,blob){return await blobToData(blob)},
   async myOffers(bid,day){return demoDB().offers.filter(o=>o.business_id===bid&&o.day===day)},
   async saveOffer(p){const d=demoDB();if(p.id)Object.assign(d.offers.find(o=>o.id===p.id),p);else d.offers.push({...p,id:"o"+Date.now()});demoSave()},
   async deleteOffer(id){const d=demoDB();d.offers=d.offers.filter(o=>o.id!==id);demoSave()},
@@ -330,7 +370,7 @@ function friendly(m){
   const M=[[/Invalid login/i,"Correo o contraseña incorrectos."],[/already registered/i,"Ese correo ya tiene cuenta. Entra con tu contraseña."],[/Password should|weak/i,"La contraseña debe tener al menos 8 caracteres, con letras y números."],
     [/AGOTADO/,"Ya no quedan suficientes bolsas."],[/LIMITE/,"Ya tienes 3 pedidos activos hoy con ese teléfono. Intenta más tarde."],[/CERRADO/,"El horario para recoger esta bolsa ya pasó."],
     [/DATOS/,"Revisa tu nombre y tu WhatsApp a 10 dígitos."],[/SIN_PAGO/,"Ese pedido aún no está pagado. No lo entregues."],[/CODIGO/,"Ese código no existe, ya se entregó o no es de tu negocio."],
-    [/SIN_SALDO/,"Ese negocio no tiene saldo por pagar."],[/NO_PERMITIDO|permission denied/i,"No tienes permiso para hacer eso."],[/clabe/i,"La CLABE debe tener 18 dígitos."],[/Failed to fetch|NetworkError/i,"Sin conexión. Revisa tu internet."]];
+    [/SIN_SALDO/,"Ese negocio no tiene saldo por pagar."],[/NO_PERMITIDO|permission denied/i,"No tienes permiso para hacer eso."],[/clabe/i,"La CLABE debe tener 18 dígitos."],[/IMAGEN|logo_url_ok|photo_url_ok/,"Esa imagen no es válida. Súbela otra vez desde la app."],[/Failed to fetch|NetworkError/i,"Sin conexión. Revisa tu internet."]];
   for(const [r,t] of M)if(r.test(m))return t;return "Algo salió mal. Intenta de nuevo."}
 const chk=({data,error})=>{if(error){console.error(error);throw new Error(friendly(error.message||""))}return data};
 const sbApi={
@@ -348,6 +388,10 @@ const sbApi={
   async signOut(){await sb.auth.signOut()},
   async myBusiness(){const u=await this.session();return chk(await sb.from("businesses").select("*").eq("owner",u.id).maybeSingle())},
   async saveBusiness(p,id){if(id)chk(await sb.from("businesses").update(p).eq("id",id));else chk(await sb.from("businesses").insert(p))},
+  async uploadImage(bid,kind,blob){const path=`${bid}/${kind}-${Date.now()}.jpg`;
+    const {error}=await sb.storage.from("media").upload(path,blob,{contentType:"image/jpeg",cacheControl:"31536000",upsert:false});
+    if(error){console.error(error);throw new Error(/size|large/i.test(error.message)?"La imagen pesa demasiado. Prueba con otra.":"No se pudo subir la imagen. Intenta de nuevo.")}
+    return sb.storage.from("media").getPublicUrl(path).data.publicUrl},
   async myOffers(bid,day){return chk(await sb.from("offers").select("*").eq("business_id",bid).eq("day",day).order("pickup_start"))},
   async saveOffer(p){if(p.id){const {id,...r}=p;chk(await sb.from("offers").update(r).eq("id",id))}else chk(await sb.from("offers").insert(p))},
   async deleteOffer(id){chk(await sb.from("offers").delete().eq("id",id))},
@@ -413,7 +457,7 @@ function drawList(){
   const l=offersCache.filter(o=>inCity(o)&&(filter==="Todo"||o.category===filter)&&hm(o.pickup_end)>now).sort((a,b)=>(b.qty_left>0)-(a.qty_left>0)||hm(a.pickup_start).localeCompare(hm(b.pickup_start)));
   $("#list").innerHTML=l.map(o=>{const off=Math.round((1-o.price/o.price_original)*100);
     const s=o.qty_left===0?'<span class="tag grey">Agotado</span>':o.qty_left<=2?`<span class="tag sun">Quedan ${o.qty_left}</span>`:`<span class="tag grey">${o.qty_left} disponibles</span>`;
-    return `<button class="card ${o.qty_left?"":"soldout"}" data-id="${esc(o.id)}"><div class="thumb">${icon(o.category)}</div><div class="body">
+    return `<button class="card ${o.qty_left?"":"soldout"}" data-id="${esc(o.id)}"><div class="thumb">${pic(o.photo_url||o.logo_url,o.category)}</div><div class="body">
       <div class="row"><span class="name">${esc(o.business_name)}</span><span class="price">${money(o.price)}</span></div>
       <div class="row"><span class="meta">${esc(o.title)}</span><span class="was">${money(o.price_original)}</span></div>
       <div class="tags"><span class="tag blue">Recoge ${hm(o.pickup_start)}–${hm(o.pickup_end)}</span><span class="tag">−${off}%</span>${s}${o.rating?`<span class="tag grey">${stars(o.rating)}</span>`:""}</div></div></button>`}).join("")
@@ -421,7 +465,7 @@ function drawList(){
   $("#list").onclick=e=>{const c=e.target.closest(".card");if(c)offerSheet(offersCache.find(o=>String(o.id)===c.dataset.id))}}
 function offerSheet(o){
   let q=1;const me=ls("pickit.me",{name:"",phone:""});
-  const draw=(err="")=>{openSheet(`<div class="row"><div class="thumb">${icon(o.category)}</div>${o.rating?`<span class="tag grey">${stars(o.rating)}</span>`:'<span class="tag blue">Nuevo en Pick It</span>'}</div>
+  const draw=(err="")=>{openSheet(`${safeImg(o.photo_url)?`<img class="banner" src="${esc(o.photo_url)}" alt="Foto de ${esc(o.title)}">`:""}<div class="row"><div class="thumb">${pic(o.logo_url,o.category,o.business_name)}</div>${o.rating?`<span class="tag grey">${stars(o.rating)}</span>`:'<span class="tag blue">Nuevo en Pick It</span>'}</div>
     <div><h2>${esc(o.business_name)}</h2><span class="meta">${esc(o.address)}${o.city?" · "+esc(o.city):""}</span></div>
     <div><b>${esc(o.title)}</b><p style="margin:4px 0 0">${esc(o.description)}</p><p class="meta" style="margin:4px 0 0">El contenido exacto depende de lo que sobre hoy.</p></div>
     <div class="box"><div><span>Recoger hoy</span><b>${hm(o.pickup_start)}–${hm(o.pickup_end)}</b></div>
@@ -518,7 +562,7 @@ async function renderNegocio(){
   const banner=b.status==="pendiente"?`<div class="panel alert"><b>Tu registro está en revisión.</b><span>Ya puedes preparar tus bolsas; se mostrarán a los clientes en cuanto aprobemos tu negocio.${CFG.WHATSAPP_SOPORTE?" Dudas: WhatsApp "+esc(CFG.WHATSAPP_SOPORTE):""}</span></div>`
     :b.status==="suspendido"?`<div class="panel bad"><b>Tu negocio está suspendido.</b><span>Tus bolsas no se muestran. Escribe a soporte.</span></div>`
     :!b.clabe?`<div class="panel alert"><b>Agrega tu CLABE para recibir tus pagos.</b><span>Sin ella no podemos depositarte. Ve a “Mi negocio”.</span></div>`:"";
-  $("#app").innerHTML=`<section class="row" style="align-items:center"><div style="min-width:0"><div class="eyebrow">${esc(b.category)}</div><h2>${esc(b.name)}</h2></div><button class="btn ghost small" id="out">Salir</button></section>
+  $("#app").innerHTML=`<section class="row" style="align-items:center"><div class="bizhead"><div class="thumb">${pic(b.logo_url,b.category,b.name)}</div><div style="min-width:0"><div class="eyebrow">${esc(b.category)}</div><h2>${esc(b.name)}</h2></div></div><button class="btn ghost small" id="out">Salir</button></section>
     ${banner}<div class="tabs-inline" role="tablist">${[["hoy","Bolsas de hoy"],["pedidos","Pedidos"],["pagos","Mis pagos"],["perfil","Mi negocio"]].map(([k,l])=>`<button role="tab" data-t="${k}" aria-selected="${bizTab===k}">${l}</button>`).join("")}</div><div id="bizBody" class="stack"></div>`;
   $("#out").onclick=async()=>{await api.signOut();route()};
   document.querySelectorAll("[data-t]").forEach(x=>x.onclick=()=>{bizTab=x.dataset.t;renderNegocio()});
@@ -547,8 +591,10 @@ function offerForm(b,o){
     <span class="hint" id="oPct"></span>
     <div class="grid2"><label>Recoger desde<input id="oS" type="time" required value="${hm(v.pickup_start)}"></label><label>Hasta<input id="oE" type="time" required value="${hm(v.pickup_end)}"></label></div>
     <div class="grid2"><label>Bolsas disponibles<input id="oQ" type="number" min="0" max="50" required value="${v.qty_left}"></label><label>Peso aprox. (kg)<input id="oK" type="number" min="0.1" step="0.1" value="${v.kg||1}"></label></div>
-    <div class="err" id="oErr"></div><button class="btn wide">${o?"Guardar cambios":"Publicar"}</button></form>
+    ${picker("oPh","Foto de la bolsa (opcional)",v.photo_url,b.category,"Una foto real vende más. Si no subes una, se muestra tu logo.")}
+    <div class="err" id="oErr"></div><button class="btn wide" id="oBtn">${o?"Guardar cambios":"Publicar"}</button></form>
     ${o?`<button class="btn danger wide" id="oDel">Quitar esta bolsa</button>`:""}<button class="btn ghost wide" id="closeS">Cancelar</button>`);
+  const ph={};bindPicker("oPh",1080,b.category,ph);
   const pct=()=>{const a=+$("#oPO").value,p=+$("#oP").value;$("#oPct").textContent=a&&p?`${Math.round((1-p/a)*100)}% de descuento para el cliente · tú recibes ${money(p*(1-SETTINGS.commission_pct/100))} por bolsa`:""};pct();
   $("#oPO").oninput=$("#oP").oninput=pct;$("#closeS").onclick=closeSheet;
   if($("#oDel"))$("#oDel").onclick=async e=>{if(!confirmTap(e.target,"Toca otra vez para quitarla"))return;await api.deleteOffer(o.id);closeSheet();toast("Bolsa quitada");bizHoy(b)};
@@ -558,7 +604,8 @@ function offerForm(b,o){
     const q=+$("#oQ").value;
     const rec={business_id:b.id,title:$("#oT").value.trim(),description:$("#oD").value.trim(),price_original:po,price:p,qty_left:q,qty_total:Math.max(q,o?.qty_total||0),pickup_start:$("#oS").value,pickup_end:$("#oE").value,kg:+$("#oK").value||1,day:today()};
     if(o)rec.id=o.id;
-    try{await api.saveOffer(rec);closeSheet();toast(o?"Cambios guardados":"Bolsa publicada");bizHoy(b)}catch(err){$("#oErr").textContent=err.message}};
+    $("#oBtn").disabled=true;
+    try{rec.photo_url=await finalUrl(b.id,"bolsa",ph,v.photo_url);await api.saveOffer(rec);closeSheet();toast(o?"Cambios guardados":"Bolsa publicada");bizHoy(b)}catch(err){$("#oErr").textContent=err.message;$("#oBtn").disabled=false}};
 }
 async function bizPedidos(b){
   const os=(await api.businessOrders(b.id,today())).filter(o=>o.status!=="cancelado").sort((a,c)=>String(c.created_at).localeCompare(String(a.created_at)));
@@ -592,6 +639,7 @@ function bizProfileForm(b,inTab){
   const v=b||{name:"",category:"Panadería",address:"",city:"",phone:"",clabe:"",bank_holder:""};
   const html=`${inTab?"":`<section><div class="eyebrow">Paso final</div><h2>Registra tu negocio</h2><p class="lead">Lo revisamos y te avisamos cuando tus bolsas ya se muestren.</p></section>`}
     <form class="panel" id="bForm"><label>Nombre del negocio<input id="bN" required maxlength="60" value="${esc(v.name)}"></label>
+    ${b?picker("bLogo","Logo del negocio (opcional)",v.logo_url,v.category,"Cuadrado se ve mejor. Aparece en tus bolsas y en los pedidos."):`<span class="hint">Podrás subir tu logo en "Mi negocio" después de registrarte.</span>`}
     <label>Tipo<select id="bC">${CATS.map(c=>`<option ${c===v.category?"selected":""}>${c}</option>`).join("")}</select></label>
     <label>Dirección<input id="bA" required maxlength="90" value="${esc(v.address)}" placeholder="Calle, número y colonia"></label>
     <label>Ciudad<input id="bCity" required minlength="2" maxlength="40" list="cityList" value="${esc(v.city||"")}" placeholder="Ej. Puebla" autocomplete="address-level2"><datalist id="cityList">${CITIES.map(c=>`<option value="${esc(c)}">`).join("")}</datalist></label>
@@ -602,11 +650,13 @@ function bizProfileForm(b,inTab){
     <div class="err" id="bErr"></div><button class="btn wide">${b?"Guardar":"Registrar mi negocio"}</button>
     <span class="hint">Tu CLABE solo la ve el administrador de Pick It para depositarte. Al registrarte aceptas publicar solo comida en buen estado y entregar lo que se pagó.</span></form>`;
   if(inTab)$("#bizBody").innerHTML=html;else $("#app").innerHTML=html;
+  const lg={};if(b)bindPicker("bLogo",512,v.category,lg);
   $("#bForm").onsubmit=async e=>{e.preventDefault();const k=$("#bK").value.replace(/\D/g,"");
     if(k&&k.length!==18){$("#bErr").textContent="La CLABE debe tener 18 dígitos.";return}
     const p={name:$("#bN").value.trim(),category:$("#bC").value,address:$("#bA").value.trim(),city:$("#bCity").value.trim().replace(/\s+/g," "),phone:$("#bP").value.replace(/\D/g,""),clabe:k||null,bank_holder:$("#bH").value.trim()||null};
     if(p.phone.length<10){$("#bErr").textContent="El teléfono debe tener 10 dígitos.";return}
-    try{await api.saveBusiness(p,b&&b.id);toast(b?"Datos guardados":"Negocio registrado");renderNegocio()}catch(err){$("#bErr").textContent=err.message}};
+    const btn=$("#bForm button.wide");btn.disabled=true;
+    try{if(b)p.logo_url=await finalUrl(b.id,"logo",lg,v.logo_url);await api.saveBusiness(p,b&&b.id);toast(b?"Datos guardados":"Negocio registrado");renderNegocio()}catch(err){$("#bErr").textContent=err.message;btn.disabled=false}};
 }
 
 /* =================== ADMIN =================== */
