@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Pick It">
+<meta name="apple-mobile-web-app-title" content="Peek &amp; Pick">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https://*.supabase.co; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin">
-<title>Pick It</title>
+<title>Peek &amp; Pick</title>
 <meta name="theme-color" content="#2340A8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
@@ -184,8 +184,8 @@ footer.foot{font-size:13px;color:var(--muted);text-align:center;display:flex;fle
 <div class="wrap">
   <header class="top">
     <a class="brand" href="#" id="home">
-      <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="var(--cobalt)"/><path d="M12 16h16l-1.6 14.2a2 2 0 0 1-2 1.8H15.6a2 2 0 0 1-2-1.8z" fill="var(--on-cobalt)"/><path d="M16 16v-2a4 4 0 0 1 8 0v2" fill="none" stroke="var(--on-cobalt)" stroke-width="2.2" stroke-linecap="round"/><circle cx="20" cy="23.5" r="2.6" fill="var(--sun)"/></svg>
-      <span><b>Pick It</b><small id="subtitle">Rescate de comida</small></span>
+      <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="var(--cobalt)"/><path d="M24 25v-4a8 8 0 0 1 16 0v4" fill="none" stroke="var(--on-cobalt)" stroke-width="4.5" stroke-linecap="round"/><path d="M14 25h36l-3 25a4 4 0 0 1-4 3.5H21a4 4 0 0 1-4-3.5z" fill="var(--on-cobalt)"/><path d="M25 37a7 7 0 0 0 14 0" fill="none" stroke="var(--cobalt)" stroke-width="4" stroke-linecap="round"/><circle cx="51" cy="13" r="6.5" fill="var(--sun)"/></svg>
+      <span><b>Peek &amp; Pick</b><small id="subtitle">Rescate de comida</small></span>
     </a>
     <button class="btn ghost small" id="installBtn" hidden>Instalar app</button>
   </header>
@@ -425,7 +425,7 @@ async function currentPushSub(){if(!pushSupported())return null;try{const r=awai
 async function savePushSub(s){const j=s.toJSON();chk(await sb.rpc("save_push",{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_city:city==="*"?null:city}))}
 async function enablePush(){
   const perm=await Notification.requestPermission();
-  if(perm!=="granted")throw new Error("Para recibir avisos, permite las notificaciones de Pick It en los ajustes de tu celular.");
+  if(perm!=="granted")throw new Error("Para recibir avisos, permite las notificaciones de Peek & Pick en los ajustes de tu celular.");
   const reg=await navigator.serviceWorker.ready;
   const {key}=await callFn(CFG.AVISOS_FN,{accion:"clave"});
   let s=await reg.pushManager.getSubscription();
@@ -437,7 +437,7 @@ async function drawPushPanel(){
   const el=$("#pushPanel");if(!el)return;
   if(DEMO){el.hidden=true;return}
   if(!pushSupported()){
-    if(isIOS()&&!isStandalone()){el.hidden=false;el.innerHTML=`<b>🔔 ¿Quieres avisos de bolsas nuevas?</b><span>En iPhone o iPad: toca <b>Compartir</b> → <b>Agregar a inicio</b>, abre Pick It desde ese ícono y activa los avisos aquí.</span>`}
+    if(isIOS()&&!isStandalone()){el.hidden=false;el.innerHTML=`<b>🔔 ¿Quieres avisos de bolsas nuevas?</b><span>En iPhone o iPad: toca <b>Compartir</b> → <b>Agregar a inicio</b>, abre Peek & Pick desde ese ícono y activa los avisos aquí.</span>`}
     else el.hidden=true;return}
   const s=await currentPushSub();
   el.hidden=false;
@@ -470,7 +470,7 @@ async function renderCliente(){
       <li><span>Elige una bolsa y págala con tarjeta (cobro seguro de Clip).</span></li>
       <li><span>Llega al local en el horario indicado y muestra tu código.</span></li>
       <li><span>Recoge tu bolsa. Es sorpresa: trae lo que sobró ese día.</span></li></ol></section>
-    <footer class="foot"><span>¿Tienes un negocio de comida? <a href="#negocio">Vende tus sobrantes en Pick It</a></span>${CFG.WHATSAPP_SOPORTE?`<span>Ayuda: WhatsApp <b>${esc(CFG.WHATSAPP_SOPORTE)}</b></span>`:""}${CFG.INSTAGRAM||CFG.CORREO?`<span>${CFG.INSTAGRAM?`<a href="https://instagram.com/${encodeURIComponent(CFG.INSTAGRAM)}" target="_blank" rel="noopener">Instagram @${esc(CFG.INSTAGRAM)}</a>`:""}${CFG.INSTAGRAM&&CFG.CORREO?" · ":""}${CFG.CORREO?`<a href="mailto:${esc(CFG.CORREO)}">${esc(CFG.CORREO)}</a>`:""}</span>`:""}</footer>`;
+    <footer class="foot"><span>¿Tienes un negocio de comida? <a href="#negocio">Vende tus sobrantes en Peek & Pick</a></span>${CFG.WHATSAPP_SOPORTE?`<span>Ayuda: WhatsApp <b>${esc(CFG.WHATSAPP_SOPORTE)}</b></span>`:""}${CFG.INSTAGRAM||CFG.CORREO?`<span>${CFG.INSTAGRAM?`<a href="https://instagram.com/${encodeURIComponent(CFG.INSTAGRAM)}" target="_blank" rel="noopener">Instagram @${esc(CFG.INSTAGRAM)}</a>`:""}${CFG.INSTAGRAM&&CFG.CORREO?" · ":""}${CFG.CORREO?`<a href="mailto:${esc(CFG.CORREO)}">${esc(CFG.CORREO)}</a>`:""}</span>`:""}</footer>`;
   drawPushPanel();
   try{offersCache=await api.listOffers()}catch(e){$("#list").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   drawCities();drawChips();drawList();updateBadge();
@@ -505,11 +505,11 @@ function drawList(){
   $("#list").onclick=e=>{const c=e.target.closest(".card");if(c)offerSheet(offersCache.find(o=>String(o.id)===c.dataset.id))}}
 function offerSheet(o){
   let q=1;const me=ls("pickit.me",{name:"",phone:""});
-  const draw=(err="")=>{openSheet(`${safeImg(o.photo_url)?`<img class="banner" src="${esc(o.photo_url)}" alt="Foto de ${esc(o.title)}">`:""}<div class="row"><div class="thumb">${pic(o.logo_url,o.category,o.business_name)}</div>${o.rating?`<span class="tag grey">${stars(o.rating)}</span>`:'<span class="tag blue">Nuevo en Pick It</span>'}</div>
+  const draw=(err="")=>{openSheet(`${safeImg(o.photo_url)?`<img class="banner" src="${esc(o.photo_url)}" alt="Foto de ${esc(o.title)}">`:""}<div class="row"><div class="thumb">${pic(o.logo_url,o.category,o.business_name)}</div>${o.rating?`<span class="tag grey">${stars(o.rating)}</span>`:'<span class="tag blue">Nuevo en Peek & Pick</span>'}</div>
     <div><h2>${esc(o.business_name)}</h2><span class="meta">${esc(o.address)}${o.city?" · "+esc(o.city):""}</span></div>
     <div><b>${esc(o.title)}</b><p style="margin:4px 0 0">${esc(o.description)}</p><p class="meta" style="margin:4px 0 0">El contenido exacto depende de lo que sobre hoy.</p></div>
     <div class="box"><div><span>Recoger hoy</span><b>${hm(o.pickup_start)}–${hm(o.pickup_end)}</b></div>
-      <div><span>Precio normal</span><span class="was">${money(o.price_original)}</span></div><div><span>Precio Pick It</span><b>${money(o.price)}</b></div>
+      <div><span>Precio normal</span><span class="was">${money(o.price_original)}</span></div><div><span>Precio Peek & Pick</span><b>${money(o.price)}</b></div>
       <div><span>Pago</span><span>Tarjeta, con Clip</span></div></div>
     ${o.qty_left?`<form id="resForm"><div class="grid2"><label>Tu nombre<input id="rName" required maxlength="40" autocomplete="given-name" value="${esc(me.name)}"></label>
       <label>WhatsApp<input id="rPhone" required inputmode="tel" maxlength="14" autocomplete="tel" value="${esc(me.phone)}" placeholder="10 dígitos"></label></div>
@@ -573,7 +573,7 @@ function loginView(who,after){
   let mode="in";
   const draw=(err="")=>{$("#app").innerHTML=`<section><div class="eyebrow">${who==="admin"?"Administración":"Para negocios"}</div>
     <h1>${who==="admin"?"Panel de administración":"Vende tus sobrantes en lugar de tirarlos"}</h1>
-    ${who==="negocio"?`<p class="lead">Publica tus bolsas sorpresa en un minuto. Los clientes pagan en la app y Pick It te deposita cada semana en tu cuenta.</p>`:""}</section>
+    ${who==="negocio"?`<p class="lead">Publica tus bolsas sorpresa en un minuto. Los clientes pagan en la app y Peek & Pick te deposita cada semana en tu cuenta.</p>`:""}</section>
     <div class="panel"><div class="tabs-inline" role="tablist"><button role="tab" aria-selected="${mode==="in"}" id="mIn">Entrar</button>${who==="negocio"?`<button role="tab" aria-selected="${mode==="up"}" id="mUp">Crear cuenta</button>`:""}</div>
     <form id="authForm"><label>Correo<input id="aEmail" type="email" required autocomplete="email"></label>
       <label>Contraseña<input id="aPass" type="password" required minlength="8" autocomplete="${mode==="in"?"current-password":"new-password"}">${mode==="up"?'<span class="hint">Mínimo 8 caracteres, con letras y números.</span>':""}</label>
@@ -582,7 +582,7 @@ function loginView(who,after){
       <li><span>Te registras y revisamos tu negocio antes de mostrarlo.</span></li>
       <li><span>Cada tarde publicas cuántas bolsas te sobraron, el precio y la hora para recoger.</span></li>
       <li><span>El cliente paga en la app. Llega, te dice su código y lo marcas como entregado.</span></li>
-      <li><span>Cada lunes te depositamos lo vendido la semana anterior, menos la comisión de Pick It.</span></li></ol></section>`:""}`;
+      <li><span>Cada lunes te depositamos lo vendido la semana anterior, menos la comisión de Peek & Pick.</span></li></ol></section>`:""}`;
     $("#mIn").onclick=()=>{mode="in";draw()};if($("#mUp"))$("#mUp").onclick=()=>{mode="up";draw()};
     $("#authForm").onsubmit=async e=>{e.preventDefault();const p=$("#aPass").value;
       if(mode==="up"&&!(/[A-Za-z]/.test(p)&&/\d/.test(p))){draw("La contraseña debe tener letras y números.");return}
@@ -627,7 +627,7 @@ function offerForm(b,o){
     <label>Nombre de la bolsa<input id="oT" required maxlength="50" value="${esc(v.title)}"></label>
     <label>Qué suele traer<textarea id="oD" maxlength="160" placeholder="Ej. 6 piezas de pan dulce del día">${esc(v.description)}</textarea></label>
     <div class="grid2"><label>Valor normal<input id="oPO" type="number" min="20" step="1" required value="${v.price_original}"></label>
-    <label>Precio Pick It<input id="oP" type="number" min="20" step="1" required value="${v.price}"></label></div>
+    <label>Precio Peek & Pick<input id="oP" type="number" min="20" step="1" required value="${v.price}"></label></div>
     <span class="hint" id="oPct"></span>
     <div class="grid2"><label>Recoger desde<input id="oS" type="time" required value="${hm(v.pickup_start)}"></label><label>Hasta<input id="oE" type="time" required value="${hm(v.pickup_end)}"></label></div>
     <div class="grid2"><label>Bolsas disponibles<input id="oQ" type="number" min="0" max="50" required value="${v.qty_left}"></label><label>Peso aprox. (kg)<input id="oK" type="number" min="0.1" step="0.1" value="${v.kg||1}"></label></div>
@@ -670,7 +670,7 @@ async function bizPagos(b){
     <div class="kpi"><b>${money(sum(week,"net"))}</b><span>acumulado esta semana · se deposita el ${fmtDate(nextMon)}</span></div>
     <div class="kpi"><b>${sum(last30.filter(o=>o.status!=="no_recogido"),"qty")}</b><span>bolsas entregadas en 30 días</span></div>
     <div class="kpi"><b>${rated.length?(sum(rated,"rating")/rated.length).toFixed(1)+" ★":"—"}</b><span>calificación de clientes</span></div></div>
-    <div class="panel"><span>En 30 días vendiste <b>${money(sum(last30,"total"))}</b> de comida que antes era merma. Comisión de Pick It: ${SETTINGS.commission_pct}%. Recibes <b>${money(sum(last30,"net"))}</b>.</span>
+    <div class="panel"><span>En 30 días vendiste <b>${money(sum(last30,"total"))}</b> de comida que antes era merma. Comisión de Peek & Pick: ${SETTINGS.commission_pct}%. Recibes <b>${money(sum(last30,"net"))}</b>.</span>
       <span class="meta">Los depósitos van a la CLABE ${b.clabe?"terminación "+esc(String(b.clabe).slice(-4)):"que aún no registras"}.</span></div>
     <h3>Depósitos recibidos</h3>${ps.length?`<div class="tablebox"><table><thead><tr><th>Fecha</th><th class="num">Pedidos</th><th class="num">Depositado</th></tr></thead><tbody>
       ${ps.map(p=>`<tr><td>${fmtDate(dayOf(p.paid_at))}<br><span class="meta">${esc(p.reference||"")}</span></td><td class="num">${p.orders_count}</td><td class="num"><b>${money(p.net)}</b><br><span class="meta">de ${money(p.gross)}</span></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Aún no hay depósitos.</div>'}`;
@@ -688,7 +688,7 @@ function bizProfileForm(b,inTab){
     <label>CLABE interbancaria<input id="bK" inputmode="numeric" maxlength="18" value="${esc(v.clabe||"")}" placeholder="18 dígitos" autocomplete="off"></label>
     <label>Titular de la cuenta<input id="bH" maxlength="80" value="${esc(v.bank_holder||"")}" autocomplete="off"></label>
     <div class="err" id="bErr"></div><button class="btn wide">${b?"Guardar":"Registrar mi negocio"}</button>
-    <span class="hint">Tu CLABE solo la ve el administrador de Pick It para depositarte. Al registrarte aceptas publicar solo comida en buen estado y entregar lo que se pagó.</span></form>`;
+    <span class="hint">Tu CLABE solo la ve el administrador de Peek & Pick para depositarte. Al registrarte aceptas publicar solo comida en buen estado y entregar lo que se pagó.</span></form>`;
   if(inTab)$("#bizBody").innerHTML=html;else $("#app").innerHTML=html;
   const lg={};if(b)bindPicker("bLogo",512,v.category,lg);
   $("#bForm").onsubmit=async e=>{e.preventDefault();const k=$("#bK").value.replace(/\D/g,"");
@@ -711,7 +711,7 @@ async function renderAdmin(){
   const wk=paid.filter(o=>dayOf(o.paid_at)>=ws),mo=paid.filter(o=>dayOf(o.paid_at)>=monthStart());
   const mpFee=a=>a.reduce((s,o)=>s+Number(o.total)*0.036*1.16,0);
   const pendB=bs.filter(b=>b.status==="pendiente"),refund=os.filter(o=>o.status==="por_reembolsar"),noClabe=pend.filter(p=>!p.clabe);
-  $("#app").innerHTML=`<section class="row" style="align-items:center"><div><div class="eyebrow">Pick It</div><h2>Administración</h2></div><button class="btn ghost small" id="out">Salir</button></section>
+  $("#app").innerHTML=`<section class="row" style="align-items:center"><div><div class="eyebrow">Peek & Pick</div><h2>Administración</h2></div><button class="btn ghost small" id="out">Salir</button></section>
     <div class="kpis"><div class="kpi"><b>${money(sum(pend,"net"))}</b><span>por depositar a ${pend.length} ${pend.length===1?"negocio":"negocios"} (semanas cerradas)</span></div>
     <div class="kpi"><b>${money(sum(mo,"commission")-mpFee(mo))}</b><span>tu ganancia del mes (comisión menos Clip, aprox.)</span></div>
     <div class="kpi"><b>${money(sum(wk,"total"))}</b><span>cobrado esta semana</span></div>
@@ -761,7 +761,7 @@ async function renderAdmin(){
     body.onclick=async e=>{const x=e.target.closest("[data-ref]");if(!x)return;if(!confirmTap(x,"Confirmar reembolso"))return;await api.markRefunded(x.dataset.ref);toast("Marcado como reembolsado");renderAdmin()};
   }else{
     const ex=60,fee=ex*0.036*1.16,com=ex*SETTINGS.commission_pct/100;
-    body.innerHTML=`<form class="panel" id="setForm"><h3>Comisión de Pick It</h3>
+    body.innerHTML=`<form class="panel" id="setForm"><h3>Comisión de Peek & Pick</h3>
       <label>Porcentaje que te quedas de cada venta<input id="sPct" type="number" min="0" max="60" step="0.5" value="${SETTINGS.commission_pct}"></label>
       <label>Minutos para pagar antes de liberar la bolsa<input id="sHold" type="number" min="5" max="60" value="${SETTINGS.hold_minutes}"></label>
       <div class="box"><div><span>Ejemplo: bolsa de</span><b>${money(ex)}</b></div><div><span>Tu comisión (${SETTINGS.commission_pct}%)</span><span>${money(com)}</span></div>
