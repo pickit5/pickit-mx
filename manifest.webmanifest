@@ -1,13 +1,13 @@
 {
   "name": "Pick It",
   "short_name": "Pick It",
-  "description": "Rescata comida del Centro Histórico de Puebla a bajo precio",
+  "description": "Bolsas sorpresa de panaderías, cafés y restaurantes a mejor precio",
   "lang": "es-MX",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F7FC",
-  "theme_color": "#2340A8",
+  "theme_color": "#2340C8",
   "icons": [
     {
       "src": "icon-192.png",

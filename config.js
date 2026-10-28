@@ -3,6 +3,8 @@
 window.PICKIT_CONFIG = {
   SUPABASE_URL: "https://qxmqmlqeoeztccnvswlt.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_PzTq6LjZmPUzxNRhIL-Y4w_l6LhRY5z",  // llave pública (nunca la secret/service_role)
-  WHATSAPP_SOPORTE: "2224148725",      // tu WhatsApp para dudas, ej. "2221234567"
-  ZONA: ""                   // texto opcional bajo el logo; vacío = muestra la ciudad elegida
+  WHATSAPP_SOPORTE: "2224148725",      // tu WhatsApp para dudas
+  INSTAGRAM: "holapickit",             // usuario de Instagram, sin @
+  CORREO: "holapickit@gmail.com",      // correo de contacto
+  ZONA: ""                             // texto opcional bajo el logo; vacío = muestra la ciudad elegida
 };

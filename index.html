@@ -8,7 +8,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https://*.supabase.co; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin">
 <title>Pick It</title>
-<meta name="theme-color" content="#2340A8">
+<meta name="theme-color" content="#2340C8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -175,6 +175,7 @@ form.row input{flex:1}
 .cityrow{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--muted)}
 .cityrow select{width:auto;flex:1;max-width:260px;padding:8px 10px}
 footer.foot{font-size:13px;color:var(--muted);text-align:center;display:flex;flex-direction:column;gap:6px}
+.pushp{display:flex;flex-direction:column;gap:6px;align-items:flex-start}.pushp span{font-size:14px;color:var(--muted)}
 @media (max-width:420px){.trust{grid-template-columns:1fr}.trust div{flex-direction:row;align-items:center}}
 </style>
 </head>
@@ -210,7 +211,7 @@ footer.foot{font-size:13px;color:var(--muted);text-align:center;display:flex;fle
 <script src="config.js"></script>
 <script>
 "use strict";
-const CFG=Object.assign({SUPABASE_URL:"",SUPABASE_ANON_KEY:"",WHATSAPP_SOPORTE:"",ZONA:""},window.PICKIT_CONFIG||{});
+const CFG=Object.assign({SUPABASE_URL:"",SUPABASE_ANON_KEY:"",WHATSAPP_SOPORTE:"",ZONA:"",INSTAGRAM:"",CORREO:""},window.PICKIT_CONFIG||{});
 const CFG_OK=!!window.PICKIT_CONFIG;
 const DEMO=CFG_OK&&!CFG.SUPABASE_URL;
 const $=s=>document.querySelector(s);
@@ -393,7 +394,7 @@ const sbApi={
     if(error){console.error(error);throw new Error(/size|large/i.test(error.message)?"La imagen pesa demasiado. Prueba con otra.":"No se pudo subir la imagen. Intenta de nuevo.")}
     return sb.storage.from("media").getPublicUrl(path).data.publicUrl},
   async myOffers(bid,day){return chk(await sb.from("offers").select("*").eq("business_id",bid).eq("day",day).order("pickup_start"))},
-  async saveOffer(p){if(p.id){const {id,...r}=p;chk(await sb.from("offers").update(r).eq("id",id))}else chk(await sb.from("offers").insert(p))},
+  async saveOffer(p){if(p.id){const {id,...r}=p;chk(await sb.from("offers").update(r).eq("id",id))}else{const row=chk(await sb.from("offers").insert(p).select("id").single());if(row&&row.id)notifyNewOffer(row.id)}},
   async deleteOffer(id){chk(await sb.from("offers").delete().eq("id",id))},
   async businessOrders(bid,since){return chk(await sb.from("orders").select("*").eq("business_id",bid).gte("created_at",since+"T00:00:00-06:00").order("created_at",{ascending:false}).limit(3000))},
   async myPayouts(bid){return chk(await sb.from("payouts").select("*").eq("business_id",bid).order("paid_at",{ascending:false}).limit(52))},
@@ -412,6 +413,43 @@ const sbApi={
 };
 const api=DEMO?demoApi:sbApi;
 
+/* =================== AVISOS (notificaciones de bolsas nuevas) =================== */
+const FN=n=>CFG.SUPABASE_URL.replace(/\/$/,"")+"/functions/v1/"+n;
+function callFn(n,body){return fetch(FN(n),{method:"POST",headers:{"Content-Type":"application/json",apikey:CFG.SUPABASE_ANON_KEY,Authorization:"Bearer "+CFG.SUPABASE_ANON_KEY},body:JSON.stringify(body)}).then(r=>r.ok?r.json():Promise.reject(new Error("aviso "+r.status)))}
+function notifyNewOffer(id){if(DEMO)return;callFn("avisos",{accion:"bolsa",offer_id:id}).catch(e=>console.warn(e))}
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const pushSupported=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
+function u8(b){b=b.replace(/-/g,"+").replace(/_/g,"/");while(b.length%4)b+="=";return Uint8Array.from(atob(b),c=>c.charCodeAt(0))}
+async function currentPushSub(){if(!pushSupported())return null;try{const r=await navigator.serviceWorker.getRegistration();return r?await r.pushManager.getSubscription():null}catch(e){return null}}
+async function savePushSub(s){const j=s.toJSON();chk(await sb.rpc("save_push",{p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth,p_city:city==="*"?null:city}))}
+async function enablePush(){
+  const perm=await Notification.requestPermission();
+  if(perm!=="granted")throw new Error("Para recibir avisos, permite las notificaciones de Pick It en los ajustes de tu celular.");
+  const reg=await navigator.serviceWorker.ready;
+  const {key}=await callFn("avisos",{accion:"clave"});
+  let s=await reg.pushManager.getSubscription();
+  if(!s)s=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(key)});
+  await savePushSub(s);
+}
+async function disablePush(){const s=await currentPushSub();if(!s)return;try{await sb.rpc("delete_push",{p_endpoint:s.endpoint})}catch(e){}await s.unsubscribe()}
+async function drawPushPanel(){
+  const el=$("#pushPanel");if(!el)return;
+  if(DEMO){el.hidden=true;return}
+  if(!pushSupported()){
+    if(isIOS()&&!isStandalone()){el.hidden=false;el.innerHTML=`<b>🔔 ¿Quieres avisos de bolsas nuevas?</b><span>En iPhone o iPad: toca <b>Compartir</b> → <b>Agregar a inicio</b>, abre Pick It desde ese ícono y activa los avisos aquí.</span>`}
+    else el.hidden=true;return}
+  const s=await currentPushSub();
+  el.hidden=false;
+  if(s&&Notification.permission==="granted"){
+    el.innerHTML=`<b>🔔 Avisos activados</b><span>Te avisamos cuando un negocio${city!=="*"?" de "+esc(city):""} publique bolsas. Máximo 3 avisos al día.</span><button class="btn small ghost" id="pushOff">Desactivar avisos</button>`;
+    $("#pushOff").onclick=async()=>{await disablePush();toast("Avisos desactivados");drawPushPanel()};
+  }else{
+    el.innerHTML=`<b>🔔 Entérate primero</b><span>Te avisamos cuando haya bolsas nuevas cerca de ti. Máximo 3 avisos al día.</span><button class="btn small" id="pushOn">Activar avisos</button><div class="err" id="pushErr"></div>`;
+    $("#pushOn").onclick=async e=>{e.target.disabled=true;try{await enablePush();toast("¡Listo! Te avisaremos de bolsas nuevas");drawPushPanel()}catch(err){$("#pushErr").textContent=err.message||"No se pudieron activar los avisos.";e.target.disabled=false}};
+  }
+}
+
 /* =================== CLIENTE =================== */
 let filter="Todo",offersCache=[],custTab="explore",city=ls("pickit.city","*");
 const myCodes=()=>ls("pickit.codes",[]);
@@ -427,12 +465,13 @@ async function renderCliente(){
   if(custTab==="orders")return renderMisPedidos();
   $("#app").innerHTML=`<section><div class="eyebrow" id="cityEyebrow">Hoy</div><h1>Rescata comida rica antes de que se tire</h1>
     <p class="lead">Bolsas sorpresa de negocios cerca de ti a menos de la mitad de precio. Pagas en la app y solo pasas a recoger.</p></section>
-    ${TRUST}<label class="cityrow" id="cityRow" hidden><span>Tu ciudad</span><select id="citySel" aria-label="Tu ciudad"></select></label><div class="chips" id="chips" role="group" aria-label="Filtrar por tipo"></div><div class="list" id="list"><div class="empty">Cargando bolsas de hoy…</div></div>
+    ${TRUST}<div class="panel pushp" id="pushPanel" hidden></div><label class="cityrow" id="cityRow" hidden><span>Tu ciudad</span><select id="citySel" aria-label="Tu ciudad"></select></label><div class="chips" id="chips" role="group" aria-label="Filtrar por tipo"></div><div class="list" id="list"><div class="empty">Cargando bolsas de hoy…</div></div>
     <section class="panel"><h3>Cómo funciona</h3><ol class="how">
       <li><span>Elige una bolsa y págala con tarjeta (cobro seguro de Clip).</span></li>
       <li><span>Llega al local en el horario indicado y muestra tu código.</span></li>
       <li><span>Recoge tu bolsa. Es sorpresa: trae lo que sobró ese día.</span></li></ol></section>
-    <footer class="foot"><span>¿Tienes un negocio de comida? <a href="#negocio">Vende tus sobrantes en Pick It</a></span>${CFG.WHATSAPP_SOPORTE?`<span>Ayuda: WhatsApp <b>${esc(CFG.WHATSAPP_SOPORTE)}</b></span>`:""}</footer>`;
+    <footer class="foot"><span>¿Tienes un negocio de comida? <a href="#negocio">Vende tus sobrantes en Pick It</a></span>${CFG.WHATSAPP_SOPORTE?`<span>Ayuda: WhatsApp <b>${esc(CFG.WHATSAPP_SOPORTE)}</b></span>`:""}${CFG.INSTAGRAM||CFG.CORREO?`<span>${CFG.INSTAGRAM?`<a href="https://instagram.com/${encodeURIComponent(CFG.INSTAGRAM)}" target="_blank" rel="noopener">Instagram @${esc(CFG.INSTAGRAM)}</a>`:""}${CFG.INSTAGRAM&&CFG.CORREO?" · ":""}${CFG.CORREO?`<a href="mailto:${esc(CFG.CORREO)}">${esc(CFG.CORREO)}</a>`:""}</span>`:""}</footer>`;
+  drawPushPanel();
   try{offersCache=await api.listOffers()}catch(e){$("#list").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
   drawCities();drawChips();drawList();updateBadge();
 }
@@ -447,7 +486,8 @@ function drawCities(){
   const label=city!=="*"?city:(list.length===1?list[0]:"");
   $("#cityEyebrow").textContent=label?`Hoy · ${label}`:"Hoy";
   $("#subtitle").textContent=label||CFG.ZONA||"Rescate de comida";
-  $("#citySel").onchange=e=>{city=e.target.value;lsSet("pickit.city",city);filter="Todo";drawCities();drawChips();drawList()};
+  $("#citySel").onchange=async e=>{city=e.target.value;lsSet("pickit.city",city);filter="Todo";drawCities();drawChips();drawList();
+    const s=await currentPushSub();if(s&&!DEMO){try{await savePushSub(s)}catch(err){}drawPushPanel()}};
 }
 function drawChips(){const cats=["Todo",...new Set(offersCache.filter(inCity).map(o=>o.category))];
   $("#chips").innerHTML=cats.map(c=>`<button class="chip" aria-pressed="${c===filter}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
