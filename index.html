@@ -163,6 +163,8 @@ nav.tabs button[aria-current="page"]{color:var(--cobalt);background:var(--cobalt
 .ratebtns button{border:1.5px solid var(--line);background:var(--surface);border-radius:10px;width:40px;height:40px;font-size:18px;color:var(--sun)}
 .clabe{font-variant-numeric:tabular-nums;letter-spacing:.02em;word-break:break-all}
 form.row input{flex:1}
+.cityrow{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;color:var(--muted)}
+.cityrow select{width:auto;flex:1;max-width:260px;padding:8px 10px}
 footer.foot{font-size:13px;color:var(--muted);text-align:center;display:flex;flex-direction:column;gap:6px}
 @media (max-width:420px){.trust{grid-template-columns:1fr}.trust div{flex-direction:row;align-items:center}}
 </style>
@@ -199,7 +201,7 @@ footer.foot{font-size:13px;color:var(--muted);text-align:center;display:flex;fle
 <script src="config.js"></script>
 <script>
 "use strict";
-const CFG=Object.assign({SUPABASE_URL:"",SUPABASE_ANON_KEY:"",WHATSAPP_SOPORTE:"",ZONA:"Centro Histórico · Puebla"},window.PICKIT_CONFIG||{});
+const CFG=Object.assign({SUPABASE_URL:"",SUPABASE_ANON_KEY:"",WHATSAPP_SOPORTE:"",ZONA:""},window.PICKIT_CONFIG||{});
 const CFG_OK=!!window.PICKIT_CONFIG;
 const DEMO=CFG_OK&&!CFG.SUPABASE_URL;
 const $=s=>document.querySelector(s);
@@ -218,6 +220,8 @@ const sum=(a,k)=>a.reduce((s,o)=>s+Number(o[k]||0),0);
 const kg=n=>Number(n||0).toLocaleString("es-MX",{maximumFractionDigits:1});
 function ls(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+const cityKey=c=>String(c||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim().toLowerCase();
+const CITIES=["Puebla","Cholula","Tlaxcala","Apizaco","Ciudad de México","Guadalajara","Monterrey","Querétaro","Mérida","Oaxaca","Veracruz","Toluca"];
 const CATS=["Panadería","Comida corrida","Antojitos","Cafés","Dulces","Otro"];
 const ICONS={
  "Panadería":'<path fill="currentColor" d="M4 13c0-4.4 3.6-8 8-8s8 3.6 8 8v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm5-2v6h2v-6zm4 0v6h2v-6z"/>',
@@ -246,12 +250,12 @@ async function copy(text,btn){try{await navigator.clipboard.writeText(text);toas
 function demoSeed(){
   const t=today(),ws=weekStart(t);
   const B=[
-   {id:"b1",name:"Panadería del Barrio del Artista",category:"Panadería",address:"Calle 8 Norte, Centro",phone:"2220000001",clabe:"012180001111111111",bank_holder:"Rosa Méndez",status:"activo",created_at:addDays(t,-60)},
-   {id:"b2",name:"Fonda Doña Chela",category:"Comida corrida",address:"Av. 3 Oriente, Centro",phone:"2220000002",clabe:"014180002222222222",bank_holder:"Graciela Pérez",status:"activo",created_at:addDays(t,-40)},
-   {id:"b3",name:"Café del Callejón",category:"Cafés",address:"Callejón de los Sapos",phone:"2220000003",clabe:"",bank_holder:"",status:"activo",created_at:addDays(t,-35)},
-   {id:"b4",name:"Cemitas El Portalito",category:"Antojitos",address:"Calle 5 de Mayo, Centro",phone:"2220000004",clabe:"072180004444444444",bank_holder:"Juan Ortiz",status:"activo",created_at:addDays(t,-20)},
-   {id:"b5",name:"Taquería Reforma",category:"Antojitos",address:"Av. Reforma, Centro",phone:"2220000005",clabe:"002180005555555555",bank_holder:"Taquería Reforma SA",status:"activo",created_at:addDays(t,-50)},
-   {id:"b6",name:"Dulcería La 6 Oriente",category:"Dulces",address:"Av. 6 Oriente, Centro",phone:"2220000006",clabe:"",bank_holder:"",status:"pendiente",created_at:addDays(t,-1)}
+   {id:"b1",city:"Puebla",name:"Panadería del Barrio del Artista",category:"Panadería",address:"Calle 8 Norte, Centro",phone:"2220000001",clabe:"012180001111111111",bank_holder:"Rosa Méndez",status:"activo",created_at:addDays(t,-60)},
+   {id:"b2",city:"Puebla",name:"Fonda Doña Chela",category:"Comida corrida",address:"Av. 3 Oriente, Centro",phone:"2220000002",clabe:"014180002222222222",bank_holder:"Graciela Pérez",status:"activo",created_at:addDays(t,-40)},
+   {id:"b3",city:"Cholula",name:"Café del Callejón",category:"Cafés",address:"Callejón de los Sapos",phone:"2220000003",clabe:"",bank_holder:"",status:"activo",created_at:addDays(t,-35)},
+   {id:"b4",city:"Puebla",name:"Cemitas El Portalito",category:"Antojitos",address:"Calle 5 de Mayo, Centro",phone:"2220000004",clabe:"072180004444444444",bank_holder:"Juan Ortiz",status:"activo",created_at:addDays(t,-20)},
+   {id:"b5",city:"Puebla",name:"Taquería Reforma",category:"Antojitos",address:"Av. Reforma, Centro",phone:"2220000005",clabe:"002180005555555555",bank_holder:"Taquería Reforma SA",status:"activo",created_at:addDays(t,-50)},
+   {id:"b6",city:"Puebla",name:"Dulcería La 6 Oriente",category:"Dulces",address:"Av. 6 Oriente, Centro",phone:"2220000006",clabe:"",bank_holder:"",status:"pendiente",created_at:addDays(t,-1)}
   ];
   const O=[
    {id:"o1",business_id:"b1",title:"Bolsa de pan dulce",description:"6 a 8 piezas del día: conchas, orejas y cuernitos.",price_original:180,price:65,qty_left:4,qty_total:5,pickup_start:"20:00",pickup_end:"21:00",kg:1.2,day:t},
@@ -271,17 +275,17 @@ function demoSeed(){
     Object.entries(groups).forEach(([w,os])=>{const id="p"+b.id+w;P.push({id,business_id:b.id,orders_count:os.length,gross:sum(os,"total"),commission:sum(os,"commission"),net:sum(os,"net"),reference:"SPEI "+w.replace(/-/g,"").slice(2),paid_at:addDays(w,7)+"T11:00:00-06:00"});os.forEach(o=>o.payout_id=id)})}
   R.push({id:"r_today1",code:"PK-7KQ2M",offer_id:"o2",business_id:"b2",offer_title:"Menú del día para dos",customer_name:"Valeria",customer_phone:"2221112233",qty:1,total:59,kg:1,status:"apartado",rating:null,pickup:"17:30–18:30",created_at:t+"T13:10:00-06:00",paid_at:t+"T13:11:00-06:00",commission:14.75,net:44.25,payout_id:null});
   R.push({id:"r_ref",code:"PK-R3FND",offer_id:"o4",business_id:"b4",offer_title:"Dos cemitas del día",customer_name:"Carlos",customer_phone:"2221119999",qty:1,total:75,kg:0.9,status:"por_reembolsar",rating:null,pickup:"18:00–19:00",created_at:t+"T12:00:00-06:00",paid_at:t+"T12:25:00-06:00",commission:null,net:null,payout_id:null});
-  return {v:5,day:t,settings:{commission_pct:pct,hold_minutes:15},businesses:B,offers:O,orders:R,payouts:P};
+  return {v:6,day:t,settings:{commission_pct:pct,hold_minutes:15},businesses:B,offers:O,orders:R,payouts:P};
 }
 let DB=null;
-function demoDB(){if(!DB){DB=ls("pickit.demo",null);if(!DB||DB.v!==5||DB.day!==today())DB=demoSeed()}return DB}
+function demoDB(){if(!DB){DB=ls("pickit.demo",null);if(!DB||DB.v!==6||DB.day!==today())DB=demoSeed()}return DB}
 const demoSave=()=>lsSet("pickit.demo",DB);
 const bizOf=id=>demoDB().businesses.find(b=>b.id===id);
 function ratingOf(bid){const r=demoDB().orders.filter(o=>o.business_id===bid&&o.rating);return r.length?r.reduce((s,o)=>s+o.rating,0)/r.length:null}
 const eligible=(o,cut)=>PAID.includes(o.status)&&!o.payout_id&&dayOf(o.paid_at)<cut;
 const demoApi={
   async listOffers(){const d=demoDB(),t=today();
-    return d.offers.filter(o=>o.day===t&&bizOf(o.business_id).status==="activo").map(o=>{const b=bizOf(o.business_id);return {...o,business_name:b.name,category:b.category,address:b.address,rating:ratingOf(b.id)}})},
+    return d.offers.filter(o=>o.day===t&&bizOf(o.business_id).status==="activo").map(o=>{const b=bizOf(o.business_id);return {...o,business_name:b.name,category:b.category,address:b.address,city:b.city,rating:ratingOf(b.id)}})},
   async reserve(offerId,name,phone,qty){const d=demoDB(),o=d.offers.find(x=>x.id===offerId);
     if(!o||o.qty_left<qty)throw new Error("Ya no quedan suficientes bolsas.");
     o.qty_left-=qty;const code=genCode();
@@ -365,35 +369,48 @@ const sbApi={
 const api=DEMO?demoApi:sbApi;
 
 /* =================== CLIENTE =================== */
-let filter="Todo",offersCache=[],custTab="explore";
+let filter="Todo",offersCache=[],custTab="explore",city=ls("pickit.city","*");
 const myCodes=()=>ls("pickit.codes",[]);
 const setCodes=c=>lsSet("pickit.codes",c.slice(-30));
 const TRUST='<div class="trust">'+
- '<div><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5zm-1.5 14L7 12.5l1.4-1.4 2.1 2.1 5.1-5.1L17 9.5z"/></svg>Negocios del Centro revisados uno por uno</div>'+
+ '<div><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5zm-1.5 14L7 12.5l1.4-1.4 2.1 2.1 5.1-5.1L17 9.5z"/></svg>Negocios locales revisados uno por uno</div>'+
  '<div><svg viewBox="0 0 24 24"><path fill="currentColor" d="M3 6h18v12H3zm2 2v2h14V8zm0 5v3h6v-3z"/></svg>Pago seguro con tarjeta a través de Clip</div>'+
  '<div><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m-1 14-4-4 1.4-1.4 2.6 2.6 5.6-5.6L18 9z"/></svg>Si no hay tu bolsa, te devolvemos tu dinero</div></div>';
 async function renderCliente(){
-  document.body.classList.add("has-tabs");$("#custTabs").hidden=false;$("#subtitle").textContent=CFG.ZONA;
+  document.body.classList.add("has-tabs");$("#custTabs").hidden=false;$("#subtitle").textContent=(city&&city!=="*")?city:(CFG.ZONA||"Rescate de comida");
   $("#tabExplore").removeAttribute("aria-current");$("#tabOrders").removeAttribute("aria-current");
   (custTab==="explore"?$("#tabExplore"):$("#tabOrders")).setAttribute("aria-current","page");
   if(custTab==="orders")return renderMisPedidos();
-  $("#app").innerHTML=`<section><div class="eyebrow">Hoy · ${esc(CFG.ZONA)}</div><h1>Rescata comida rica antes de que se tire</h1>
-    <p class="lead">Bolsas sorpresa de negocios del Centro a menos de la mitad de precio. Pagas en la app y solo pasas a recoger.</p></section>
-    ${TRUST}<div class="chips" id="chips" role="group" aria-label="Filtrar por tipo"></div><div class="list" id="list"><div class="empty">Cargando bolsas de hoy…</div></div>
+  $("#app").innerHTML=`<section><div class="eyebrow" id="cityEyebrow">Hoy</div><h1>Rescata comida rica antes de que se tire</h1>
+    <p class="lead">Bolsas sorpresa de negocios cerca de ti a menos de la mitad de precio. Pagas en la app y solo pasas a recoger.</p></section>
+    ${TRUST}<label class="cityrow" id="cityRow" hidden><span>Tu ciudad</span><select id="citySel" aria-label="Tu ciudad"></select></label><div class="chips" id="chips" role="group" aria-label="Filtrar por tipo"></div><div class="list" id="list"><div class="empty">Cargando bolsas de hoy…</div></div>
     <section class="panel"><h3>Cómo funciona</h3><ol class="how">
       <li><span>Elige una bolsa y págala con tarjeta (cobro seguro de Clip).</span></li>
       <li><span>Llega al local en el horario indicado y muestra tu código.</span></li>
       <li><span>Recoge tu bolsa. Es sorpresa: trae lo que sobró ese día.</span></li></ol></section>
-    <footer class="foot"><span>¿Tienes un negocio en el Centro? <a href="#negocio">Vende tus sobrantes en Pick It</a></span>${CFG.WHATSAPP_SOPORTE?`<span>Ayuda: WhatsApp <b>${esc(CFG.WHATSAPP_SOPORTE)}</b></span>`:""}</footer>`;
+    <footer class="foot"><span>¿Tienes un negocio de comida? <a href="#negocio">Vende tus sobrantes en Pick It</a></span>${CFG.WHATSAPP_SOPORTE?`<span>Ayuda: WhatsApp <b>${esc(CFG.WHATSAPP_SOPORTE)}</b></span>`:""}</footer>`;
   try{offersCache=await api.listOffers()}catch(e){$("#list").innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
-  drawChips();drawList();updateBadge();
+  drawCities();drawChips();drawList();updateBadge();
 }
-function drawChips(){const cats=["Todo",...new Set(offersCache.map(o=>o.category))];
+function inCity(o){return city==="*"||cityKey(o.city)===cityKey(city)}
+function drawCities(){
+  const m=new Map();offersCache.forEach(o=>{const k=cityKey(o.city);if(k&&!m.has(k))m.set(k,String(o.city).trim())});
+  const list=[...m.values()].sort((a,b)=>a.localeCompare(b,"es"));
+  if(city!=="*"&&!m.has(cityKey(city)))city="*";
+  if(list.length===1)city="*";
+  $("#cityRow").hidden=list.length<2;
+  $("#citySel").innerHTML=`<option value="*">Todas las ciudades</option>`+list.map(c=>`<option ${cityKey(c)===cityKey(city)?"selected":""}>${esc(c)}</option>`).join("");
+  const label=city!=="*"?city:(list.length===1?list[0]:"");
+  $("#cityEyebrow").textContent=label?`Hoy · ${label}`:"Hoy";
+  $("#subtitle").textContent=label||CFG.ZONA||"Rescate de comida";
+  $("#citySel").onchange=e=>{city=e.target.value;lsSet("pickit.city",city);filter="Todo";drawCities();drawChips();drawList()};
+}
+function drawChips(){const cats=["Todo",...new Set(offersCache.filter(inCity).map(o=>o.category))];
   $("#chips").innerHTML=cats.map(c=>`<button class="chip" aria-pressed="${c===filter}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
   $("#chips").onclick=e=>{const b=e.target.closest(".chip");if(b){filter=b.dataset.c;drawChips();drawList()}}}
 function drawList(){
   const now=nowHM();
-  const l=offersCache.filter(o=>(filter==="Todo"||o.category===filter)&&hm(o.pickup_end)>now).sort((a,b)=>(b.qty_left>0)-(a.qty_left>0)||hm(a.pickup_start).localeCompare(hm(b.pickup_start)));
+  const l=offersCache.filter(o=>inCity(o)&&(filter==="Todo"||o.category===filter)&&hm(o.pickup_end)>now).sort((a,b)=>(b.qty_left>0)-(a.qty_left>0)||hm(a.pickup_start).localeCompare(hm(b.pickup_start)));
   $("#list").innerHTML=l.map(o=>{const off=Math.round((1-o.price/o.price_original)*100);
     const s=o.qty_left===0?'<span class="tag grey">Agotado</span>':o.qty_left<=2?`<span class="tag sun">Quedan ${o.qty_left}</span>`:`<span class="tag grey">${o.qty_left} disponibles</span>`;
     return `<button class="card ${o.qty_left?"":"soldout"}" data-id="${esc(o.id)}"><div class="thumb">${icon(o.category)}</div><div class="body">
@@ -405,7 +422,7 @@ function drawList(){
 function offerSheet(o){
   let q=1;const me=ls("pickit.me",{name:"",phone:""});
   const draw=(err="")=>{openSheet(`<div class="row"><div class="thumb">${icon(o.category)}</div>${o.rating?`<span class="tag grey">${stars(o.rating)}</span>`:'<span class="tag blue">Nuevo en Pick It</span>'}</div>
-    <div><h2>${esc(o.business_name)}</h2><span class="meta">${esc(o.address)}</span></div>
+    <div><h2>${esc(o.business_name)}</h2><span class="meta">${esc(o.address)}${o.city?" · "+esc(o.city):""}</span></div>
     <div><b>${esc(o.title)}</b><p style="margin:4px 0 0">${esc(o.description)}</p><p class="meta" style="margin:4px 0 0">El contenido exacto depende de lo que sobre hoy.</p></div>
     <div class="box"><div><span>Recoger hoy</span><b>${hm(o.pickup_start)}–${hm(o.pickup_end)}</b></div>
       <div><span>Precio normal</span><span class="was">${money(o.price_original)}</span></div><div><span>Precio Pick It</span><b>${money(o.price)}</b></div>
@@ -572,11 +589,12 @@ async function bizPagos(b){
       ${ps.map(p=>`<tr><td>${fmtDate(dayOf(p.paid_at))}<br><span class="meta">${esc(p.reference||"")}</span></td><td class="num">${p.orders_count}</td><td class="num"><b>${money(p.net)}</b><br><span class="meta">de ${money(p.gross)}</span></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">Aún no hay depósitos.</div>'}`;
 }
 function bizProfileForm(b,inTab){
-  const v=b||{name:"",category:"Panadería",address:"",phone:"",clabe:"",bank_holder:""};
+  const v=b||{name:"",category:"Panadería",address:"",city:"",phone:"",clabe:"",bank_holder:""};
   const html=`${inTab?"":`<section><div class="eyebrow">Paso final</div><h2>Registra tu negocio</h2><p class="lead">Lo revisamos y te avisamos cuando tus bolsas ya se muestren.</p></section>`}
     <form class="panel" id="bForm"><label>Nombre del negocio<input id="bN" required maxlength="60" value="${esc(v.name)}"></label>
     <label>Tipo<select id="bC">${CATS.map(c=>`<option ${c===v.category?"selected":""}>${c}</option>`).join("")}</select></label>
-    <label>Dirección<input id="bA" required maxlength="90" value="${esc(v.address)}" placeholder="Calle y número, Centro"></label>
+    <label>Dirección<input id="bA" required maxlength="90" value="${esc(v.address)}" placeholder="Calle, número y colonia"></label>
+    <label>Ciudad<input id="bCity" required minlength="2" maxlength="40" list="cityList" value="${esc(v.city||"")}" placeholder="Ej. Puebla" autocomplete="address-level2"><datalist id="cityList">${CITIES.map(c=>`<option value="${esc(c)}">`).join("")}</datalist></label>
     <label>Teléfono del negocio<input id="bP" required inputmode="tel" maxlength="14" value="${esc(v.phone)}"></label>
     <h3 style="margin-top:6px">Dónde te depositamos</h3>
     <label>CLABE interbancaria<input id="bK" inputmode="numeric" maxlength="18" value="${esc(v.clabe||"")}" placeholder="18 dígitos" autocomplete="off"></label>
@@ -586,7 +604,7 @@ function bizProfileForm(b,inTab){
   if(inTab)$("#bizBody").innerHTML=html;else $("#app").innerHTML=html;
   $("#bForm").onsubmit=async e=>{e.preventDefault();const k=$("#bK").value.replace(/\D/g,"");
     if(k&&k.length!==18){$("#bErr").textContent="La CLABE debe tener 18 dígitos.";return}
-    const p={name:$("#bN").value.trim(),category:$("#bC").value,address:$("#bA").value.trim(),phone:$("#bP").value.replace(/\D/g,""),clabe:k||null,bank_holder:$("#bH").value.trim()||null};
+    const p={name:$("#bN").value.trim(),category:$("#bC").value,address:$("#bA").value.trim(),city:$("#bCity").value.trim().replace(/\s+/g," "),phone:$("#bP").value.replace(/\D/g,""),clabe:k||null,bank_holder:$("#bH").value.trim()||null};
     if(p.phone.length<10){$("#bErr").textContent="El teléfono debe tener 10 dígitos.";return}
     try{await api.saveBusiness(p,b&&b.id);toast(b?"Datos guardados":"Negocio registrado");renderNegocio()}catch(err){$("#bErr").textContent=err.message}};
 }
@@ -635,7 +653,7 @@ async function renderAdmin(){
     const per=id=>paid.filter(o=>o.business_id===id&&dayOf(o.paid_at)>=addDays(t,-29));
     body.innerHTML=bs.map(b=>{const s=b.status==="pendiente"?'<span class="tag warn">Por aprobar</span>':b.status==="suspendido"?'<span class="tag bad">Suspendido</span>':'<span class="tag">Activo</span>';
       return `<div class="panel"><div class="row"><span class="name">${esc(b.name)}</span>${s}</div>
-        <span class="meta">${esc(b.category)} · ${esc(b.address)} · Tel. ${esc(b.phone)}</span>
+        <span class="meta">${esc(b.category)} · ${esc(b.address)}${b.city?", "+esc(b.city):""} · Tel. ${esc(b.phone)}</span>
         <span class="meta">30 días: <b>${sum(per(b.id),"qty")}</b> bolsas · <b>${money(sum(per(b.id),"total"))}</b> cobrados · CLABE ${b.clabe?"registrada":"pendiente"}</span>
         <div class="actions">${b.status==="pendiente"?`<button class="btn small" data-ok="${esc(b.id)}">Aprobar</button>`:""}<button class="btn ghost small" data-sus="${esc(b.id)}">${b.status==="activo"?"Suspender":b.status==="pendiente"?"Rechazar":"Reactivar"}</button></div></div>`}).join("")||'<div class="empty">Aún no se registra ningún negocio.</div>';
     body.onclick=async e=>{const x=e.target.closest("button");if(!x)return;
