@@ -6,5 +6,6 @@ window.PICKIT_CONFIG = {
   WHATSAPP_SOPORTE: "2224148725",      // tu WhatsApp para dudas
   INSTAGRAM: "holapickit",             // usuario de Instagram, sin @
   CORREO: "holapickit@gmail.com",      // correo de contacto
+  AVISOS_FN: "clever-processor",    // nombre de la función de avisos en Supabase (aparece en su dirección)
   ZONA: ""                             // texto opcional bajo el logo; vacío = muestra la ciudad elegida
 };

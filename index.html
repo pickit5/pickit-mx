@@ -8,7 +8,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https://*.supabase.co; base-uri 'self'; form-action 'self'">
 <meta name="referrer" content="strict-origin">
 <title>Pick It</title>
-<meta name="theme-color" content="#2340C8">
+<meta name="theme-color" content="#2340A8">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -211,7 +211,7 @@ footer.foot{font-size:13px;color:var(--muted);text-align:center;display:flex;fle
 <script src="config.js"></script>
 <script>
 "use strict";
-const CFG=Object.assign({SUPABASE_URL:"",SUPABASE_ANON_KEY:"",WHATSAPP_SOPORTE:"",ZONA:"",INSTAGRAM:"",CORREO:""},window.PICKIT_CONFIG||{});
+const CFG=Object.assign({SUPABASE_URL:"",SUPABASE_ANON_KEY:"",WHATSAPP_SOPORTE:"",ZONA:"",INSTAGRAM:"",CORREO:"",AVISOS_FN:"avisos"},window.PICKIT_CONFIG||{});
 const CFG_OK=!!window.PICKIT_CONFIG;
 const DEMO=CFG_OK&&!CFG.SUPABASE_URL;
 const $=s=>document.querySelector(s);
@@ -416,7 +416,7 @@ const api=DEMO?demoApi:sbApi;
 /* =================== AVISOS (notificaciones de bolsas nuevas) =================== */
 const FN=n=>CFG.SUPABASE_URL.replace(/\/$/,"")+"/functions/v1/"+n;
 function callFn(n,body){return fetch(FN(n),{method:"POST",headers:{"Content-Type":"application/json",apikey:CFG.SUPABASE_ANON_KEY,Authorization:"Bearer "+CFG.SUPABASE_ANON_KEY},body:JSON.stringify(body)}).then(r=>r.ok?r.json():Promise.reject(new Error("aviso "+r.status)))}
-function notifyNewOffer(id){if(DEMO)return;callFn("avisos",{accion:"bolsa",offer_id:id}).catch(e=>console.warn(e))}
+function notifyNewOffer(id){if(DEMO)return;callFn(CFG.AVISOS_FN,{accion:"bolsa",offer_id:id}).catch(e=>console.warn(e))}
 const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 const pushSupported=()=>"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window;
@@ -427,7 +427,7 @@ async function enablePush(){
   const perm=await Notification.requestPermission();
   if(perm!=="granted")throw new Error("Para recibir avisos, permite las notificaciones de Pick It en los ajustes de tu celular.");
   const reg=await navigator.serviceWorker.ready;
-  const {key}=await callFn("avisos",{accion:"clave"});
+  const {key}=await callFn(CFG.AVISOS_FN,{accion:"clave"});
   let s=await reg.pushManager.getSubscription();
   if(!s)s=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:u8(key)});
   await savePushSub(s);
